@@ -1,0 +1,272 @@
+version: '3.8'
+
+services:
+  # 🌌 OMNISCIENT AI ECOSYSTEM - TRANSCENDENT STACK
+  # Production-ready AI system with LangGraph S-Tier, Claude 4.6, and Cursor AI Ultimate
+
+  # 📊 PostgreSQL - Primary Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: omniscient-postgres
+    environment:
+      POSTGRES_DB: omniscient_ai
+      POSTGRES_USER: omniscient_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - omniscient-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U omniscient_user -d omniscient_ai"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 🚀 Redis - Cache & Session Management
+  redis:
+    image: redis:7.2-alpine
+    container_name: omniscient-redis
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - omniscient-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 📄 MongoDB - Document Storage
+  mongodb:
+    image: mongo:7.0
+    container_name: omniscient-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: omniscient_admin
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: omniscient_docs
+    volumes:
+      - mongodb_data:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - omniscient-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 🧠 LangGraph Backend - S-Tier Orchestration
+  langgraph-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: omniscient-langgraph
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://omniscient_user:${POSTGRES_PASSWORD}@postgres:5432/omniscient_ai
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      MONGODB_URL: mongodb://omniscient_admin:${MONGO_PASSWORD}@mongodb:27017/omniscient_docs
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      CURSOR_API_KEY: ${CURSOR_API_KEY}
+      LANGSMITH_API_KEY: ${LANGSMITH_API_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+      LOG_LEVEL: info
+    volumes:
+      - ./logs:/app/logs
+      - ./uploads:/app/uploads
+    ports:
+      - "3000:3000"
+    networks:
+      - omniscient-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 🎯 Next.js Frontend - Advanced Dashboard
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+    container_name: omniscient-frontend
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://langgraph-backend:3000
+      NEXT_PUBLIC_WS_URL: ws://langgraph-backend:3000
+      NEXT_PUBLIC_APP_NAME: "Omniscient AI Ecosystem"
+      NEXT_PUBLIC_VERSION: "1.0.0"
+    ports:
+      - "3001:3000"
+    networks:
+      - omniscient-network
+    depends_on:
+      - langgraph-backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 📊 Prometheus - Metrics Collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: omniscient-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - omniscient-network
+    restart: unless-stopped
+
+  # 📈 Grafana - Visualization Dashboard
+  grafana:
+    image: grafana/grafana:latest
+    container_name: omniscient-grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: false
+      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    ports:
+      - "3002:3000"
+    networks:
+      - omniscient-network
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  # 🔍 Nginx - Reverse Proxy & Load Balancer
+  nginx:
+    image: nginx:alpine
+    container_name: omniscient-nginx
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - omniscient-network
+    depends_on:
+      - frontend
+      - langgraph-backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 📋 Jaeger - Distributed Tracing
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: omniscient-jaeger
+    environment:
+      COLLECTOR_OTLP_ENABLED: true
+    ports:
+      - "16686:16686"
+      - "14268:14268"
+      - "14250:14250"
+    networks:
+      - omniscient-network
+    restart: unless-stopped
+
+  # 📝 ELK Stack - Logging
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: omniscient-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - omniscient-network
+    restart: unless-stopped
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: omniscient-logstash
+    volumes:
+      - ./logging/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+      - ./logs:/var/log/app
+    ports:
+      - "5044:5044"
+    networks:
+      - omniscient-network
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: omniscient-kibana
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    networks:
+      - omniscient-network
+    depends_on:
+      - elasticsearch
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  mongodb_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+
+networks:
+  omniscient-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
