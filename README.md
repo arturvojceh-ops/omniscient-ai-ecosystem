@@ -270,7 +270,7 @@ Built with cutting-edge technologies from:
 - **Documentation**: [docs/](./docs/)
 - **Issues**: [GitHub Issues](https://github.com/your-username/omniscient-ai-ecosystem/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/your-username/omniscient-ai-ecosystem/discussions)
-- **Email**: support@omniscient-ai.com
+- **Email**: arturvojceh@gmail.com
 
 ---
 
