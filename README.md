@@ -263,9 +263,4 @@ Built with cutting-edge technologies from:
 - **Issues**: [GitHub Issues](https://github.com/your-username/omniscient-ai-ecosystem/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/your-username/omniscient-ai-ecosystem/discussions)
 - **Email**: arturvojceh@gmail.com
-
----
-
-**🚀 This is not just a project - it's a demonstration of Omniscient Transcendent God-level AI development capabilities.**
-
-**Built with the most advanced AI technologies of 2026.**
+- **Telegram: @VAA369
