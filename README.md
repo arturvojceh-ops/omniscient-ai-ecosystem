@@ -1,14 +1,10 @@
 # 🌌 OMNISCIENT AI ECOSYSTEM
 
 > **Transcendent AI Agent System with Omniscient Intelligence**
-> 
-> Built with LangGraph S-Tier, Claude 4.6, and Cursor AI Ultimate Features
 
 ## � Live Demo & Repository
 
 **🚀 GitHub Repository**: https://github.com/arturvojceh-ops/omniscient-ai-ecosystem
-
-**🎯 Live Demo**: [Coming Soon - Deploying to Vercel]
 
 ---
 
